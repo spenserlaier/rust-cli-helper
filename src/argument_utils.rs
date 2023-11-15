@@ -21,35 +21,38 @@ pub enum Argument{
     PairedArgument(ArgName, ArgVal),
     SingleArgument(ArgName),
 }
-//TODO: introduce convenience parsing of dash prefixes
-//TODO: introduce inline paired arguments ex --name=bobjones
-pub fn construct_arg_type(input: String, arg_type: Option<String>)-> (ArgName, ArgType){
-    let arg_name = ArgName::ArgName(input.clone());
-    if input.len() >= 1 {
-        if input.chars().nth(0) == Some('-') {
-            panic!("Cannot have leading dashes in an option name");
-        }
-        else if input.contains("=") {
-            panic!("Cannot have equals signs in an option name");
-        }
-        let arg_type = match arg_type{
-            None => ArgType::ArgTypeNoValue,
-            Some(arg_str) => {
-                match arg_str.as_str() {
-                    "usize" => ArgType::ArgTypeUsize,
-                    "string" => ArgType::ArgTypeString,
-                    x => {
-                        panic!("unrecognized argument type: {}", x);
-                    }
+
+pub fn construct_arg_type(arg_type: Option<String>) -> ArgType{
+    let parsed_arg_type = match arg_type{
+        None => ArgType::ArgTypeNoValue,
+        Some(arg_str) => {
+            match arg_str.as_str() {
+                "usize" => ArgType::ArgTypeUsize,
+                "string" => ArgType::ArgTypeString,
+                x => {
+                    panic!("unrecognized argument type: {}", x);
                 }
             }
-        };
-        (arg_name, arg_type)
+        }
+    };
+    parsed_arg_type
+}
+
+pub fn construct_arg_tuple(arg_name: String, arg_type: Option<String>)-> (ArgName, ArgType){
+    if arg_name.len() >= 1 {
+        if arg_name.chars().nth(0) == Some('-') {
+            panic!("Cannot have leading dashes in an option name");
+        }
+        else if arg_name.contains("=") {
+            panic!("Cannot have equals signs in an option name");
+        }
+        let parsed_arg_name = ArgName::ArgName(arg_name.clone());
+        let parsed_arg_type = construct_arg_type(arg_type);
+        (parsed_arg_name, parsed_arg_type)
     }
     else{
         panic!("Cannot have an empty string as an argument");
     }
-    
 }
 fn parse_arg_value(input_str: &str, arg_type: ArgType) -> ArgVal {
     match arg_type {
@@ -69,7 +72,7 @@ fn parse_arg_value(input_str: &str, arg_type: ArgType) -> ArgVal {
         }
     }
 }
-fn parse_arg_type(input_str: &str, stored_types: &HashMap<ArgName, ArgType>) -> Result<ArgType, String > {
+fn get_arg_type(input_str: &str, stored_types: &HashMap<ArgName, ArgType>) -> Result<ArgType, String > {
     if let Some(arg_type) = stored_types.get(&ArgName::ArgName(input_str.to_string())) {
         Ok(arg_type.clone())
     }
@@ -125,7 +128,7 @@ fn parse_embedded_arg(arg: &str, stored_types: &HashMap<ArgName, ArgType>) -> Op
             let unparsed_arg_value = parsed_arg_iter.nth(0).unwrap().to_string();
             // recall that nth() consumes the values, so calling nth(0) repeatedly returns
             // different values
-            let arg_type = parse_arg_type(&unparsed_arg_name, stored_types).unwrap();
+            let arg_type = get_arg_type(&unparsed_arg_name, stored_types).unwrap();
             let parsed_argument = parse_single_argument(&unparsed_arg_name, arg_type, &unparsed_arg_value);
             return Some(parsed_argument);
         }
@@ -141,6 +144,10 @@ fn parse_isolated_arg(arg: &str, arg_types: &HashMap<ArgName, ArgType>) -> Argum
         panic!("unrecognized argument name");
     }
 }
+pub fn insert_argument_type(arg_name: &str, raw_arg_type: &str, arg_types: &HashMap<ArgName, ArgType>){
+
+
+}
 pub fn parse_arguments(input: Vec<String>, arg_types: HashMap<ArgName, ArgType>) -> Vec<Argument> {
     let mut idx = 0;
     let mut parsed_arguments: Vec<Argument> = Vec::new();
@@ -153,7 +160,7 @@ pub fn parse_arguments(input: Vec<String>, arg_types: HashMap<ArgName, ArgType>)
         }
         else{
             if idx < input.len() -1 {
-                let parsed_arg_type = parse_arg_type(current_arg_name, &arg_types).unwrap();
+                let parsed_arg_type = get_arg_type(current_arg_name, &arg_types).unwrap();
                 let raw_arg_value = input.get(idx+1).unwrap();
                 let argument = parse_single_argument(current_arg_name, parsed_arg_type, raw_arg_value);
                 parsed_arguments.push(argument);
@@ -176,7 +183,7 @@ mod tests {
     fn recognize_single_argument() {
         let mut args_hashmap = HashMap::new();
         let arg_name = String::from("sample_string_arg");
-        let arg_type = construct_arg_type(arg_name.clone(), None);
+        let arg_type = construct_arg_tuple(arg_name.clone(), None);
         args_hashmap.insert(arg_type.0.clone(), arg_type.1);
         let parsed_args = parse_arguments(vec![arg_name.clone()], args_hashmap);
         assert_eq!(parsed_args, vec![Argument::SingleArgument(arg_type.0.clone())]);
@@ -186,7 +193,7 @@ mod tests {
         let mut args_hashmap = HashMap::new();
         let arg_name = String::from("sample_paired_string_arg");
         let arg_val = String::from("string_val");
-        let arg_type = construct_arg_type(arg_name.clone(), Some(String::from("string")));
+        let arg_type = construct_arg_tuple(arg_name.clone(), Some(String::from("string")));
         args_hashmap.insert(arg_type.0.clone(), arg_type.1);
         let parsed_args = parse_arguments(vec![arg_name.clone(), arg_val.clone()], args_hashmap);
         assert_eq!(parsed_args, vec![Argument::PairedArgument(arg_type.0.clone(), 
@@ -198,7 +205,7 @@ mod tests {
         let embedded_argument = String::from("--test=32");
         let mut args_hashmap :HashMap<ArgName, ArgType> = HashMap::new();
         let arg_name = String::from("test");
-        let (constructed_arg_name, constructed_arg_type) = construct_arg_type(arg_name.clone(), Some(String::from("usize")));
+        let (constructed_arg_name, constructed_arg_type) = construct_arg_tuple(arg_name.clone(), Some(String::from("usize")));
         args_hashmap.insert(constructed_arg_name.clone(), constructed_arg_type.clone());
         let parsed_args = parse_arguments(vec![embedded_argument], args_hashmap);
         assert_eq!(parsed_args, vec![Argument::PairedArgument(constructed_arg_name, 
