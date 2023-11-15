@@ -37,8 +37,7 @@ pub fn construct_arg_type(arg_type: Option<String>) -> ArgType{
     };
     parsed_arg_type
 }
-
-pub fn construct_arg_tuple(arg_name: String, arg_type: Option<String>)-> (ArgName, ArgType){
+pub fn construct_arg_name(arg_name: String) -> ArgName {
     if arg_name.len() >= 1 {
         if arg_name.chars().nth(0) == Some('-') {
             panic!("Cannot have leading dashes in an option name");
@@ -47,14 +46,19 @@ pub fn construct_arg_tuple(arg_name: String, arg_type: Option<String>)-> (ArgNam
             panic!("Cannot have equals signs in an option name");
         }
         let parsed_arg_name = ArgName::ArgName(arg_name.clone());
-        let parsed_arg_type = construct_arg_type(arg_type);
-        (parsed_arg_name, parsed_arg_type)
+        parsed_arg_name
     }
     else{
-        panic!("Cannot have an empty string as an argument");
+        panic!("Cannot have an empty string as an argument name");
     }
 }
-fn parse_arg_value(input_str: &str, arg_type: ArgType) -> ArgVal {
+
+pub fn construct_arg_tuple(arg_name: String, arg_type: Option<String>)-> (ArgName, ArgType){
+    let constructed_arg_name = construct_arg_name(arg_name);
+    let constructed_arg_type = construct_arg_type(arg_type);
+    (constructed_arg_name, constructed_arg_type)
+}
+fn construct_arg_val(input_str: &str, arg_type: ArgType) -> ArgVal {
     match arg_type {
         ArgType::ArgTypeUsize => {
                 if let Ok(parsed_usize) = input_str.parse::<usize>() {
@@ -82,7 +86,7 @@ fn get_arg_type(input_str: &str, stored_types: &HashMap<ArgName, ArgType>) -> Re
 }
 fn parse_single_argument(arg_name: &str, arg_type: ArgType, arg_val: &str) -> Argument{
     let parsed_arg_name = ArgName::ArgName(arg_name.to_string());
-    let parsed_arg_val = parse_arg_value(arg_val, arg_type);
+    let parsed_arg_val = construct_arg_val(arg_val, arg_type);
     match parsed_arg_val {
         ArgVal::ArgValNone => {
             Argument::SingleArgument(parsed_arg_name)
@@ -145,6 +149,7 @@ fn parse_isolated_arg(arg: &str, arg_types: &HashMap<ArgName, ArgType>) -> Argum
     }
 }
 pub fn insert_argument_type(arg_name: &str, raw_arg_type: &str, arg_types: &HashMap<ArgName, ArgType>){
+    let constructed_arg_type = construct_arg_type(Some(String::from(raw_arg_type)));
 
 
 }
