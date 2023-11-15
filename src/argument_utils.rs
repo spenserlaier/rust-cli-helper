@@ -148,10 +148,13 @@ fn parse_isolated_arg(arg: &str, arg_types: &HashMap<ArgName, ArgType>) -> Argum
         panic!("unrecognized argument name");
     }
 }
-pub fn insert_argument_type(arg_name: &str, raw_arg_type: &str, arg_types: &HashMap<ArgName, ArgType>){
-    let constructed_arg_type = construct_arg_type(Some(String::from(raw_arg_type)));
-
-
+pub fn insert_argument_type(arg_name: &str, arg_type: &str, arg_types: &mut HashMap<ArgName, ArgType>){
+    let arg_tuple = construct_arg_tuple(String::from(arg_name), Some(String::from(arg_type)));
+    arg_types.insert(arg_tuple.0, arg_tuple.1);
+}
+pub fn initialize_arg_types_hashmap() -> HashMap<ArgName, ArgType> {
+    let arg_types_hashmap = HashMap::new();
+    arg_types_hashmap
 }
 pub fn parse_arguments(input: Vec<String>, arg_types: HashMap<ArgName, ArgType>) -> Vec<Argument> {
     let mut idx = 0;
