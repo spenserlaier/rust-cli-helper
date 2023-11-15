@@ -219,4 +219,17 @@ mod tests {
         assert_eq!(parsed_args, vec![Argument::PairedArgument(constructed_arg_name, 
                                                               ArgVal::ArgValUsize(32))]);
     }
+    #[test]
+    fn recognize_argument_using_helpers() {
+        let arg_name = "sample_arg_name";
+        let arg_val = "24";
+        let mut arg_types = initialize_arg_types_hashmap();
+        insert_argument_type("sample_arg_name", "usize", &mut arg_types);
+        let args_vec = vec![String::from("--sample_arg_name"), String::from("24")];
+        let parsed_args = parse_arguments(args_vec, arg_types);
+        assert_eq!(parsed_args, vec![Argument::PairedArgument(
+                ArgName::ArgName(String::from(arg_name)),
+                ArgVal::ArgValUsize(24)
+                )]);
+    }
 }
