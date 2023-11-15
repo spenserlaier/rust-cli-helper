@@ -8,13 +8,15 @@ pub enum ArgName {
 pub enum ArgVal {
     ArgValString(String),
     ArgValUsize(usize),
+    ArgValBool(bool),
     ArgValNone,
 }
 #[derive(Clone)]
 pub enum ArgType {
     ArgTypeString,
     ArgTypeUsize,
-    ArgTypeNoValue
+    ArgTypeBool,
+    ArgTypeNoValue,
 }
 #[derive(Debug, PartialEq)]
 pub enum Argument{
@@ -67,6 +69,14 @@ fn construct_arg_val(input_str: &str, arg_type: ArgType) -> ArgVal {
                 else{
                     panic!("unable to parse usize from provided argument: {} ", input_str);
                 }
+        }
+        ArgType::ArgTypeBool => {
+            if let Ok(parsed_bool) = input_str.parse::<bool>() {
+                ArgVal::ArgValBool(parsed_bool)
+            }
+            else{
+                panic!("unable to parse bool from provided argument: {} ", input_str);
+            }
         }
         ArgType::ArgTypeString => {
             ArgVal::ArgValString(input_str.to_string())
