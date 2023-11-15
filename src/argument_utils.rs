@@ -104,8 +104,10 @@ fn remove_leading_dashes(arg: &str) -> &str {
 fn is_embedded_arg(arg: &str) -> bool {
     if arg.contains("=") &&
         arg.chars().filter(|&c| c == '=').count() == 1{
-        let mut components = arg.split("=");
-
+        let components = arg.split("=");
+        if components.count() == 2 {
+            return true
+        }
     }
     false
 }
@@ -120,7 +122,9 @@ fn parse_embedded_arg(arg: &str, stored_types: &HashMap<ArgName, ArgType>) -> Op
         else{
             let mut parsed_arg_iter = arg.split("=");
             let unparsed_arg_name = parsed_arg_iter.nth(0).unwrap().to_string();
-            let unparsed_arg_value = parsed_arg_iter.nth(1).unwrap().to_string();
+            let unparsed_arg_value = parsed_arg_iter.nth(0).unwrap().to_string();
+            // recall that nth() consumes the values, so calling nth(0) repeatedly returns
+            // different values
             let arg_type = parse_arg_type(&unparsed_arg_name, stored_types).unwrap();
             let parsed_argument = parse_single_argument(&unparsed_arg_name, arg_type, &unparsed_arg_value);
             return Some(parsed_argument);
@@ -165,11 +169,9 @@ pub fn parse_arguments(input: Vec<String>, arg_types: HashMap<ArgName, ArgType>)
     }
     parsed_arguments
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[test]
     fn recognize_single_argument() {
         let mut args_hashmap = HashMap::new();
@@ -190,5 +192,16 @@ mod tests {
         assert_eq!(parsed_args, vec![Argument::PairedArgument(arg_type.0.clone(), 
                                                               ArgVal::ArgValString(arg_val.clone())
                                                               )]);
+    }
+    #[test]
+    fn recognize_embedded_argument() {
+        let embedded_argument = String::from("--test=32");
+        let mut args_hashmap :HashMap<ArgName, ArgType> = HashMap::new();
+        let arg_name = String::from("test");
+        let (constructed_arg_name, constructed_arg_type) = construct_arg_type(arg_name.clone(), Some(String::from("usize")));
+        args_hashmap.insert(constructed_arg_name.clone(), constructed_arg_type.clone());
+        let parsed_args = parse_arguments(vec![embedded_argument], args_hashmap);
+        assert_eq!(parsed_args, vec![Argument::PairedArgument(constructed_arg_name, 
+                                                              ArgVal::ArgValUsize(32))]);
     }
 }
